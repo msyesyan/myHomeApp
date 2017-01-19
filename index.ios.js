@@ -1,17 +1,15 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- * @flow
- */
-
 import React, { Component } from 'react';
 import {
   AppRegistry,
   StyleSheet,
   Text,
+  Button,
   View,
-  ListView
+  ListView,
+  NativeEventEmitter
 } from 'react-native';
+import iCloudStorage from 'react-native-icloudstore';
+import { AsyncStorage, NativeModules, Platform } from 'react-native'
 
 export class Location extends Component {
   constructor(props) {
@@ -35,44 +33,65 @@ export class Location extends Component {
 export class LocationGrid extends Component {
   constructor(props) {
     super(props);
-    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
-    this.state = {
-      dataSource: ds.cloneWithRows([
-        {
-          id: '1', name: '主卧'
-        }, {
-          id: '2', name: '客厅'
-        }, {
-          id: '3', name: '次卧'
-        }, {
-          id: '4', name: '餐厅'
-        }, {
-          id: '5', name: '厨房'
-        }, {
-          id: '6', name: '阳台'
-        }, {
-          id: '7', name: '卫生间'
-        }
-      ])
-    }
   }
+
   render() {
+    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
+    this.dataSource = ds.cloneWithRows(this.props.dataSource || []);
+
     return (
       <ListView
         contentContainerStyle={styles.locationGrid}
-        dataSource={this.state.dataSource}
-        renderRow={
-          (locationData) => <Location style={styles.location} name={locationData.name}></Location>
-        }
+        dataSource={this.dataSource}
+        renderRow={(rowData) => <Location style={styles.locationGrid} name={rowData.name}></Location>}
       />
     );
   }
 }
 
 export default class App extends Component {
+  constructor(props) {
+    super(props);
+    this.addLocation = this.addLocation.bind(this);
+    this.state = {
+      locations: this.locations || []
+    }
+  }
+
+  componentWillMount() {
+    this.fetchLoactions();
+    this.eventEmitter = new NativeEventEmitter(iCloudStorage);
+    this.eventEmitter.addListener('iCloudStoreDidChangeRemotely', this.fetchLoactions);
+  }
+
+  componentWillUnmount() {
+    this.eventEmitter.remove();
+  }
+
+  fetchLoactions() {
+    iCloudStorage.getItem('@MyHome:Locations').then(locations => {
+      this.setState({
+        icloudData: locations,
+        locations: []
+      });
+    });
+  }
+
+  addLocation() {
+    this.state.locations.push({name: 'new Location'});
+    this.setState({ locations: this.state.locations });
+    iCloudStorage.setItem('@MyHome:Locations', JSON.stringify(this.state.locations));
+  }
+
   render() {
     return (
-      <LocationGrid></LocationGrid>
+      <View style={{flex: 1}}>
+        <Button
+          onPress={this.addLocation}
+          title="+ Location" />
+        <Text>{this.state.icloudData}</Text>
+        <LocationGrid dataSource={this.state.locations}></LocationGrid>
+      </View>
     );
   }
 }
