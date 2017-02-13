@@ -1,50 +1,40 @@
 import React, { Component } from 'react';
 import {
   AppRegistry,
-  StyleSheet,
-  Text,
-  Button,
-  View,
-  ListView,
   NativeEventEmitter
 } from 'react-native';
 import iCloudStorage from 'react-native-icloudstore';
-import { AsyncStorage, NativeModules, Platform } from 'react-native'
-
-export class Location extends Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      name: this.props.name || 'Location'
-    }
-  }
-
-  render() {
-    return (
-      <View style={styles.location}>
-        <Text style={
-          {textAlign: 'center'}
-        }>{this.state.name}</Text>
-      </View>
-    )
-  }
-}
+import {
+  Container,
+  Header,
+  Left,
+  Right,
+  Body,
+  Button,
+  Title,
+  Icon,
+  Footer,
+  FooterTab,
+  Content,
+  List,
+  ListItem,
+  Text
+} from 'native-base';
 
 export class LocationGrid extends Component {
   constructor(props) {
     super(props);
+    console.log('dataSource', this.props.dataSource)
   }
 
   render() {
-    const ds = new ListView.DataSource({rowHasChanged: (r1, r2) => r1 !== r2});
-    this.dataSource = ds.cloneWithRows(this.props.dataSource || []);
-
     return (
-      <ListView
-        contentContainerStyle={styles.locationGrid}
-        dataSource={this.dataSource}
-        renderRow={(rowData) => <Location style={styles.locationGrid} name={rowData.name}></Location>}
-      />
+      <List
+        dataArray={this.props.dataSource}
+        renderRow={
+          item => <ListItem><Text>{item.name}</Text></ListItem>
+        }
+      ></List>
     );
   }
 }
@@ -69,10 +59,10 @@ export default class App extends Component {
   }
 
   fetchLoactions() {
-    iCloudStorage.getItem('@MyHome:Locations').then(locations => {
+    iCloudStorage.getItem('@MyHome:Locations').then((locations = '[]') => {
+      console.log('iCloudStorage, locations, ', locations);
       this.setState({
-        icloudData: locations,
-        locations: []
+        locations: JSON.parse(locations)
       });
     });
   }
@@ -85,31 +75,37 @@ export default class App extends Component {
 
   render() {
     return (
-      <View style={{flex: 1}}>
-        <Button
-          onPress={this.addLocation}
-          title="+ Location" />
-        <Text>{this.state.icloudData}</Text>
-        <LocationGrid dataSource={this.state.locations}></LocationGrid>
-      </View>
+      <Container>
+        <Header>
+          <Left>
+            <Button transparent>
+              <Icon name='ios-arrow-back' />
+            </Button>
+          </Left>
+          <Body>
+            <Title>Locations</Title>
+          </Body>
+          <Right>
+            <Button transparent onPress={this.addLocation}>
+              <Icon name='ios-add' />
+            </Button>
+          </Right>
+        </Header>
+
+        <Content>
+          <LocationGrid dataSource={this.state.locations}></LocationGrid>
+        </Content>
+
+        <Footer>
+            <FooterTab>
+                <Button transparent>
+                    <Icon name='ios-call' />
+                </Button>
+            </FooterTab>
+        </Footer>
+      </Container>
     );
   }
 }
-
-const styles = StyleSheet.create({
-  location: {
-    backgroundColor: 'red',
-    width: 100,
-    height: 100,
-    justifyContent: 'center',
-    margin: 5
-  },
-
-  locationGrid: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-});
 
 AppRegistry.registerComponent('myHome', () => App);
