@@ -1,9 +1,8 @@
 import React, { Component } from 'react';
 import {
   AppRegistry,
-  NativeEventEmitter
+  Platform
 } from 'react-native';
-import iCloudStorage from 'react-native-icloudstore';
 import {
   Container,
   Header,
@@ -20,11 +19,21 @@ import {
   ListItem,
   Text
 } from 'native-base';
+const Realm = require('realm');
+const realm = new Realm({
+  schema: [
+    {
+      name: 'Location',
+      properties: {
+        name: 'string'
+      }
+    }
+  ]
+});
 
 export class LocationGrid extends Component {
   constructor(props) {
     super(props);
-    console.log('dataSource', this.props.dataSource)
   }
 
   render() {
@@ -44,33 +53,16 @@ export default class App extends Component {
     super(props);
     this.addLocation = this.addLocation.bind(this);
     this.state = {
-      locations: this.locations || []
+      locations: realm.objects('Location')
     }
   }
 
-  componentWillMount() {
-    this.fetchLoactions();
-    this.eventEmitter = new NativeEventEmitter(iCloudStorage);
-    this.eventEmitter.addListener('iCloudStoreDidChangeRemotely', this.fetchLoactions);
-  }
-
-  componentWillUnmount() {
-    this.eventEmitter.remove();
-  }
-
-  fetchLoactions() {
-    iCloudStorage.getItem('@MyHome:Locations').then((locations = '[]') => {
-      console.log('iCloudStorage, locations, ', locations);
-      this.setState({
-        locations: JSON.parse(locations)
-      });
-    });
-  }
-
   addLocation() {
-    this.state.locations.push({name: 'new Location'});
-    this.setState({ locations: this.state.locations });
-    iCloudStorage.setItem('@MyHome:Locations', JSON.stringify(this.state.locations));
+    const self = this;
+    realm.write(() => {
+      realm.create('Location', {name: 'Location'});
+      self.setState({locations: realm.objects('Location')});
+    })
   }
 
   render() {
@@ -91,11 +83,9 @@ export default class App extends Component {
             </Button>
           </Right>
         </Header>
-
         <Content>
           <LocationGrid dataSource={this.state.locations}></LocationGrid>
         </Content>
-
         <Footer>
             <FooterTab>
                 <Button transparent>
